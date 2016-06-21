@@ -1,0 +1,68 @@
+#!/usr/bin/env node
+
+/******************************************************************
+ The symbolication process from CLI.
+ This inturn uses symbolicate.js which performs the symbolication.
+ *******************************************************************/
+
+var _ = require('lodash');
+var fs = require('fs');
+var args = require('minimist')(process.argv.slice(2));
+var cliff = require('cliff');
+
+var sym = require('../');
+
+var crash_file = args.c || args['crash'];
+var dsym_file = args.d || args['dsym'];
+var output = args.o || args['output'];
+
+if (_.isEmpty(crash_file)|| _.isEmpty(dsym_file)) {
+  return console.log('Usage: node symbolicate-cli.js --dsym crash.dsym --crash crash.json {<optional> --out result.json>}');
+}
+
+fs.readFile(crash_file, 'utf8', function (err, data) {
+  if (err) {
+    console.error(err);
+    process.exit(1);
+  }
+
+  console.log('Symbolicating ...');
+
+  sym.symbolicateCrashReport(dsym_file, JSON.parse(data), function (err, report) {
+    if (err) {
+      console.error(err);
+      process.exit(2);
+    }
+
+    if (output) {
+      return fs.writeFile(output, JSON.stringify(report, null, 2), { encoding: 'utf8' }, function (err) {
+        if (err) {
+          console.error(err);
+          process.exit(3);
+        }
+
+        console.log(`Output written to ${output}`);
+
+        process.exit(0);
+      });
+    }
+
+    console.log('Reason: ' + report.crash.error.reason);
+
+    _.each(report.crash.threads, function (thread) {
+      console.log(`\nThread ${thread.index}`);
+      console.log(cliff.stringifyObjectRows(thread.backtrace.contents, [
+        'object_name',
+        'instruction_addr',
+        'symbol_name'
+      ], [
+        'yellow',
+        'yellow',
+        'yellow'
+      ]));
+    });
+
+    process.exit(0);
+  });
+
+});

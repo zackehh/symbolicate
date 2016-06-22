@@ -5,12 +5,11 @@
  This inturn uses symbolicate.js which performs the symbolication.
  *******************************************************************/
 
-var _ = require('lodash');
-var fs = require('fs');
-var args = require('minimist')(process.argv.slice(2));
-var cliff = require('cliff');
+const _ = require('lodash');
+const fs = require('fs');
+const args = require('minimist')(process.argv.slice(2));
 
-var sym = require('../');
+const sym = require('../');
 
 var crash_file = args.c || args['crash'];
 var dsym_file = args.d || args['dsym'];
@@ -47,20 +46,7 @@ fs.readFile(crash_file, 'utf8', function (err, data) {
       });
     }
 
-    console.log('Reason: ' + report.crash.error.reason);
-
-    _.each(report.crash.threads, function (thread) {
-      console.log(`\nThread ${thread.index}`);
-      console.log(cliff.stringifyObjectRows(thread.backtrace.contents, [
-        'object_name',
-        'instruction_addr',
-        'symbol_name'
-      ], [
-        'yellow',
-        'yellow',
-        'yellow'
-      ]));
-    });
+    console.log(sym.pretty(report));
 
     process.exit(0);
   });

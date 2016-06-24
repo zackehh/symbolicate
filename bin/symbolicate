@@ -25,7 +25,7 @@ fs.readFile(crash_file, 'utf8', function (err, data) {
     process.exit(1);
   }
 
-  sym.symbolicateCrashReport(dsym_file, JSON.parse(data), function (err, report) {
+  sym.symbolicateCrashReport(JSON.parse(data), dsym_file, function (err, report) {
     if (err) {
       console.error(err);
       process.exit(2);

@@ -1,0 +1,52 @@
+#!/usr/bin/env node
+
+/******************************************************************
+ The symbolication process from CLI.
+ This inturn uses symbolicate.js which performs the symbolication.
+ *******************************************************************/
+
+const _ = require('lodash');
+const fs = require('fs');
+const args = require('minimist')(process.argv.slice(2));
+
+const sym = require('../');
+
+var crash_file = args.c || args['crash'];
+var dsym_file = args.d || args['dsym'];
+var output = args.o || args['output'];
+
+if (_.isEmpty(crash_file)|| _.isEmpty(dsym_file)) {
+  return console.log('Usage: bin/symbolicate --dsym crash.dsym --crash crash.json {<optional> --out result.json>}');
+}
+
+fs.readFile(crash_file, 'utf8', function (err, data) {
+  if (err) {
+    console.error(err);
+    process.exit(1);
+  }
+
+  sym.symbolicateCrashReport(JSON.parse(data), dsym_file, function (err, report) {
+    if (err) {
+      console.error(err);
+      process.exit(2);
+    }
+
+    if (output) {
+      return fs.writeFile(output, JSON.stringify(report, null, 2), { encoding: 'utf8' }, function (err) {
+        if (err) {
+          console.error(err);
+          process.exit(3);
+        }
+
+        console.log(`Output written to ${output}`);
+
+        process.exit(0);
+      });
+    }
+
+    console.log(sym.pretty(report));
+
+    process.exit(0);
+  });
+
+});
